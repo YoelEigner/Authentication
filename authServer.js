@@ -7,15 +7,15 @@ const jwt = require('jsonwebtoken');
 const { registerUser, getUser, getRefreshTokens, updateRefreshTokens } = require('./dbConnect');
 app.use(cors())
 app.use(express.json())
-const fs = require('fs');
-const https = require('https');
+// const fs = require('fs');
+// const https = require('https');
 
 
 
-const options = {
-    key: fs.readFileSync('./certificates/key.pem'),
-    cert: fs.readFileSync('./certificates/cert.pem')
-};
+// const options = {
+//     key: fs.readFileSync('./certificates/key.pem'),
+//     cert: fs.readFileSync('./certificates/cert.pem')
+// };
 
 app.post('/api/register', async (req, res) => {
     try {
@@ -79,9 +79,9 @@ const generateAccessToken = (user) => {
     return jwt.sign({ name: user }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '30m' });
 
 }
-// app.listen(8000)
+app.listen(8000)
 
-https.createServer(options, app).listen(8000)
+// https.createServer(options, app).listen(8000)
 
 // https.createServer(options, (req, res) => {
 //     res.writeHead(200);
