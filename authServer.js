@@ -1,0 +1,89 @@
+const express = require('express')
+const cors = require('cors');
+require('dotenv').config()
+var bcrypt = require('bcryptjs');
+const app = express()
+const jwt = require('jsonwebtoken');
+const { registerUser, getUser, getRefreshTokens, updateRefreshTokens } = require('./dbConnect');
+app.use(cors())
+app.use(express.json())
+const fs = require('fs');
+const https = require('https');
+
+
+
+const options = {
+    key: fs.readFileSync('./certificates/key.pem'),
+    cert: fs.readFileSync('./certificates/cert.pem')
+};
+
+app.post('/api/register', async (req, res) => {
+    try {
+        let checkIsUser = await getUser(req.body.username)
+        if (checkIsUser.length === 0) { res.status(500).send(`Username not found, please speak to your administrator!`) }
+        else if (checkIsUser.length === 1 && checkIsUser[0].password === req.body.oldPassword) {
+            const hashedPassword = await bcrypt.hash(req.body.password, 10)
+            let resp = await registerUser(req.body.username, hashedPassword)
+            if (resp >= 1) { res.status(200).send('success') }
+            else { res.status(500).send('Unknown Error') }
+        }
+        else if (checkIsUser[0].password !== req.body.oldPassword) {
+            res.status(500).send(`Old password incorrect, please try again!`)
+        }
+    } catch (error) {
+        res.status(500).send()
+    }
+})
+
+
+app.post('/api/login', async (req, res) => {
+    let resp = await getUser(req.body.username)
+    if (resp.length === 0) {
+        return res.status(400).send('Incorrect Username')
+    }
+    try {
+        if (await bcrypt.compare(req.body.password, resp[0].password)) {
+            const accessToken = await generateAccessToken(resp[0].username)
+            const refreshToken = jwt.sign(resp[0].username, process.env.REFRESH_TOKEN_SECRET)
+            let refreshTokens = await getRefreshTokens(refreshToken)
+            let tokenArr = refreshTokens.map(x => x.refreshToken)
+            if (tokenArr.length === 0) {
+                await updateRefreshTokens(refreshToken)
+            }
+            res.json({ accessToken: accessToken, refreshToken: refreshToken, authenticated: true, username: req.body.username, expiresIn: 1800000 })
+        } else {
+            res.status(400).send('Incorrect Password')
+        }
+
+    } catch (error) {
+        res.status(500).send()
+    }
+})
+
+
+
+app.post('/api/token', async (req, res) => {
+    const refreshToken = req.body.token
+    let refreshTokens = await getRefreshTokens(refreshToken)
+    let tokenArr = refreshTokens.map(x => x.refreshToken)
+    if (refreshToken === null) return res.sendStatus(401)
+    if (!tokenArr.includes(refreshToken)) return res.sendStatus(403)
+    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403)
+        const accessToken = generateAccessToken({ name: user.name })
+        res.json({ accessToken: accessToken })
+    })
+})
+
+const generateAccessToken = (user) => {
+    return jwt.sign({ name: user }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '30m' });
+
+}
+// app.listen(8000)
+
+https.createServer(options, app).listen(8000)
+
+// https.createServer(options, (req, res) => {
+//     res.writeHead(200);
+//     res.end("hello world\n");
+// }).listen(8000);
