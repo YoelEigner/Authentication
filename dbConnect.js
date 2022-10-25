@@ -3,7 +3,7 @@ const sql = require("mssql");
 const config = {
     user: "Node",
     password: process.env.DBPASS,
-    server: "localhost\\SQLEXPRESS01",
+    server: "localhost\\SQLEXPRESS",
     database: "nodelogin",
     port: 1433,
     options: {

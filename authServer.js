@@ -3,18 +3,24 @@ const cors = require('cors');
 require('dotenv').config()
 var bcrypt = require('bcryptjs');
 const app = express()
+app.use(express.json())
+
+// app.use(cors())
+app.use(cors({
+    origin: '*'
+}));
+// app.options('*', cors());
+
 const jwt = require('jsonwebtoken');
 const { registerUser, getUser, getRefreshTokens, updateRefreshTokens } = require('./dbConnect');
-app.use(cors())
-app.use(express.json())
 // const fs = require('fs');
 // const https = require('https');
 
 
 
 // const options = {
-//     key: fs.readFileSync('./certificates/key.pem'),
-//     cert: fs.readFileSync('./certificates/cert.pem')
+//     key: fs.readFileSync('./certificates/server.key'),
+//     cert: fs.readFileSync('./certificates/server.cert.pem')
 // };
 
 app.post('/api/register', async (req, res) => {
@@ -73,6 +79,26 @@ app.post('/api/token', async (req, res) => {
         const accessToken = generateAccessToken({ name: user.name })
         res.json({ accessToken: accessToken })
     })
+})
+
+app.post('/api/changepass', async (req, res) => {
+    try {
+        let resp = await getUser(req.body.username)
+
+        let checkIsUser = await getUser(req.body.username)
+        if (checkIsUser.length === 0) { res.status(500).send(`Username not found, please speak to your administrator!`) }
+        else if (checkIsUser.length === 1 && await bcrypt.compare(req.body.oldpassword, resp[0].password)) {
+            const hashedPassword = await bcrypt.hash(req.body.newpassword, 10)
+            let resp = await registerUser(req.body.username, hashedPassword)
+            if (resp >= 1) { res.status(200).send('success') }
+            else { res.status(500).send('Unknown Error') }
+        }
+        else if (checkIsUser[0].password !== req.body.oldPassword) {
+            res.status(500).send(`Old password incorrect, please try again!`)
+        }
+    } catch (error) {
+        res.status(500).send()
+    }
 })
 
 const generateAccessToken = (user) => {
