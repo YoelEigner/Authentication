@@ -86,7 +86,7 @@ app.post('/api/changepass', async (req, res) => {
         let resp = await getUser(req.body.username)
 
         let checkIsUser = await getUser(req.body.username)
-        if (checkIsUser.length === 0) { res.status(500).send(`Username not found, please speak to your administrator!`) }
+        if (checkIsUser.length === 0) { res.status(500).send(`Username Incorrect, please try again!`) }
         else if (checkIsUser.length === 1 && await bcrypt.compare(req.body.oldpassword, resp[0].password)) {
             const hashedPassword = await bcrypt.hash(req.body.newpassword, 10)
             let resp = await registerUser(req.body.username, hashedPassword)
