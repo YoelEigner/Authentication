@@ -56,7 +56,7 @@ app.post('/api/login', async (req, res) => {
             if (tokenArr.length === 0) {
                 await updateRefreshTokens(refreshToken)
             }
-            res.json({ accessToken: accessToken, refreshToken: refreshToken, authenticated: true, username: req.body.username, expiresIn: 1800000 })
+            res.json({ accessToken: accessToken, refreshToken: refreshToken, authenticated: true, username: req.body.username, expiresIn: 43200000  })
         } else {
             res.status(400).send('Incorrect Password')
         }
@@ -102,7 +102,7 @@ app.post('/api/changepass', async (req, res) => {
 })
 
 const generateAccessToken = (user) => {
-    return jwt.sign({ name: user }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '30m' });
+    return jwt.sign({ name: user }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '12h' });
 
 }
 app.listen(8000)
